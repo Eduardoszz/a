@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN // terapeuta
+  PATIENT // paciente
+}
+
+enum Modality {
+  ONLINE
+  PRESENCIAL
+}
+
+enum AppointmentStatus {
+  PENDING // paciente sugeriu um horário, aguardando o terapeuta
+  PROPOSED // terapeuta propôs outro horário, aguardando o paciente
+  CONFIRMED // horário fechado
+  CANCELED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  role         Role     @default(PATIENT)
+  // quando o paciente aceitou o termo de privacidade (LGPD)
+  consentAt    DateTime?
+  createdAt    DateTime @default(now())
+
+  appointments Appointment[]
+  notes        Note[]        @relation("PatientNotes")
+  thread       Message[]     @relation("Thread")
+  sent         Message[]     @relation("Sender")
+}
+
+model Appointment {
+  id                String            @id @default(cuid())
+  patientId         String
+  patient           User              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  startsAt          DateTime
+  durationMin       Int               @default(50)
+  modality          Modality
+  status            AppointmentStatus @default(PENDING)
+  // horário que o paciente sugeriu originalmente
+  suggestedStartsAt DateTime
+  patientMessage    String?
+  googleEventId     String?
+  meetLink          String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  reminders ReminderLog[]
+
+  @@index([status, startsAt])
+}
+
+// Registra cada lembrete enviado, para não enviar duas vezes
+model ReminderLog {
+  id            String      @id @default(cuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  hoursBefore   Int
+  sentAt        DateTime    @default(now())
+  detail        String?
+
+  @@unique([appointmentId, hoursBefore])
+}
+
+// Anotações do terapeuta sobre o paciente. O conteúdo fica criptografado no banco
+// e só o ADMIN consegue ver.
+model Note {
+  id        String   @id @default(cuid())
+  patientId String
+  patient   User     @relation("PatientNotes", fields: [patientId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId, createdAt])
+}
+
+// Chat: existe uma conversa por paciente (patientId = dono da conversa)
+model Message {
+  id        String    @id @default(cuid())
+  patientId String
+  patient   User      @relation("Thread", fields: [patientId], references: [id], onDelete: Cascade)
+  senderId  String?
+  sender    User?     @relation("Sender", fields: [senderId], references: [id], onDelete: SetNull)
+  // mensagem automática do sistema (ex.: "terapeuta propôs novo horário")
+  system    Boolean   @default(false)
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([patientId, createdAt])
+}
+
+// Configurações editáveis pela tela /admin/configuracoes (inclui chaves de API)
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

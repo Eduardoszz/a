@@ -1,0 +1,29 @@
+# Dispara a verificação de lembretes a cada 30 minutos.
+# O cron da Vercel no plano gratuito (Hobby) só roda uma vez por dia, por isso
+# usamos o GitHub Actions (ou o cron-job.org — veja o README).
+#
+# Configure em: GitHub > Settings > Secrets and variables > Actions
+#   APP_URL      = https://seu-site.vercel.app
+#   CRON_SECRET  = o mesmo valor configurado na Vercel
+name: Lembretes de consulta
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: # permite rodar manualmente pela aba Actions
+
+jobs:
+  lembretes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Disparar verificação de lembretes
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "Secrets APP_URL e CRON_SECRET não configurados; nada a fazer."
+            exit 0
+          fi
+          curl -fsS -m 60 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/cron/lembretes"
