@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baía dos Corsários</title>
+<!--STYLE-START-->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Rubik:wght@400;500;700&display=swap">
+<style>
+/* Layout: tela cheia com o 3D ao fundo; HUD nos cantos, menus centrados sobre um véu azul-noite. */
+:root {
+  color-scheme: dark;
+  --mar: #0b2a45;
+  --veu: rgba(8, 26, 44, .82);
+  --papel: #f6e7c1;
+  --ouro: #ffc83d;
+  --pirata: #ff6a4d;
+  --armada: #5fb4ff;
+  --tinta: #10202e;
+  --display: 'Pirata One', 'Georgia', serif;
+  --texto: 'Rubik', system-ui, sans-serif;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; background: var(--mar); color: var(--papel); font-family: var(--texto); overflow: hidden; }
+#game { position: fixed; inset: 0; user-select: none; -webkit-user-select: none; }
+#game canvas.view { display: block; width: 100%; height: 100%; }
+.hud { position: absolute; pointer-events: none; text-shadow: 0 2px 0 rgba(0,0,0,.55); font-variant-numeric: tabular-nums; }
+#top { top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; align-items: center; font-weight: 700; font-size: 20px; background: var(--veu); padding: 6px 16px; border-radius: 4px; }
+#top .a { color: var(--pirata); } #top .d { color: var(--armada); }
+#timer { min-width: 64px; text-align: center; font-size: 24px; }
+#timer.bomb { color: var(--pirata); }
+#mini { top: 10px; left: 10px; border: 2px solid var(--papel); border-radius: 4px; background: rgba(8,26,44,.7); }
+#feed { top: 10px; right: 12px; text-align: right; font-size: 14px; display: flex; flex-direction: column; gap: 3px; }
+#feed div { background: var(--veu); padding: 3px 8px; border-radius: 3px; }
+.ta { color: var(--pirata); font-weight: 700; } .td { color: var(--armada); font-weight: 700; }
+#vitals { left: 16px; bottom: 14px; display: flex; gap: 18px; font-size: 30px; font-weight: 700; }
+#vitals small, #ammo small { display: block; font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+#ammo { right: 16px; bottom: 14px; text-align: right; font-size: 30px; font-weight: 700; }
+#money { color: var(--ouro); font-size: 20px; }
+#msg { top: 22%; left: 50%; transform: translateX(-50%); font-family: var(--display); font-size: 40px; text-align: center; white-space: nowrap; }
+#hint { bottom: 22%; left: 50%; transform: translateX(-50%); font-size: 16px; background: var(--veu); padding: 6px 12px; border-radius: 4px; }
+#bar { bottom: 17%; left: 50%; transform: translateX(-50%); width: 240px; height: 10px; background: var(--veu); border: 1px solid var(--papel); }
+#bar i { display: block; height: 100%; width: 0; background: var(--ouro); }
+#cross { top: 50%; left: 50%; width: 0; height: 0; }
+#cross b { position: absolute; background: #fff; box-shadow: 0 0 2px #000; }
+#cross b:nth-child(1) { width: 2px; height: 8px; left: -1px; top: -14px; }
+#cross b:nth-child(2) { width: 2px; height: 8px; left: -1px; top: 6px; }
+#cross b:nth-child(3) { width: 8px; height: 2px; left: -14px; top: -1px; }
+#cross b:nth-child(4) { width: 8px; height: 2px; left: 6px; top: -1px; }
+#cross.hit b { background: var(--pirata); }
+#hurt { inset: 0; box-shadow: inset 0 0 160px 40px rgba(220, 30, 20, .9); opacity: 0; }
+#scope { inset: 0; background: radial-gradient(circle, transparent 0 34vh, #000 34.4vh); }
+.panel { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--veu); padding: 16px; overflow: auto; }
+.panel > div { max-width: 640px; width: 100%; text-align: center; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(44px, 9vw, 84px); margin: 0; color: var(--ouro); line-height: 1; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 400; font-size: 34px; margin: 0 0 10px; color: var(--ouro); }
+p { line-height: 1.5; margin: 12px 0; }
+.teams { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin: 20px 0; }
+button { font: 700 17px var(--texto); color: var(--tinta); background: var(--papel); border: 0; border-bottom: 4px solid rgba(0,0,0,.35); padding: 12px 20px; border-radius: 4px; cursor: pointer; }
+button:hover, button:focus-visible { filter: brightness(1.1); outline: 2px solid var(--ouro); outline-offset: 2px; }
+button.a { background: var(--pirata); } button.d { background: var(--armada); }
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 6px 16px; text-align: left; font-size: 14px; margin-top: 18px; }
+kbd { font: 700 12px var(--texto); background: var(--papel); color: var(--tinta); padding: 2px 6px; border-radius: 3px; margin-right: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+td, th { padding: 6px 10px; text-align: left; border-bottom: 1px solid rgba(246,231,193,.2); }
+td.n, th.n { text-align: right; }
+tr.no td { opacity: .4; } tr.me td { color: var(--ouro); } tr.dead td { opacity: .5; }
+</style>
+<!--STYLE-END-->
+</head>
+<body>
+<!--BODY-START-->
+<div id="game">
+  <canvas id="mini" class="hud" width="168" height="126"></canvas>
+  <div id="top" class="hud"><span class="a">Piratas <span id="sa">0</span></span><span id="timer">0:00</span><span class="d"><span id="sd">0</span> Armada</span></div>
+  <div id="feed" class="hud"></div>
+  <div id="vitals" class="hud"><div><small>Vida</small><span id="hp">100</span></div><div><small>Colete</small><span id="ar">0</span></div></div>
+  <div id="ammo" class="hud"><div id="money">$800</div><small id="wname">Garrucha</small><span id="am">12</span></div>
+  <div id="msg" class="hud"></div>
+  <div id="hint" class="hud" hidden></div>
+  <div id="bar" class="hud" hidden><i></i></div>
+  <div id="cross" class="hud"><b></b><b></b><b></b><b></b></div>
+  <div id="scope" class="hud" hidden></div>
+  <div id="hurt" class="hud"></div>
+
+  <div id="buy" class="panel" hidden><div>
+    <h2>Arsenal do porto</h2>
+    <table id="buyT"></table>
+    <p>Aperte o número para comprar. <kbd>B</kbd> fecha.</p>
+  </div></div>
+
+  <div id="board" class="panel" hidden><div><h2>Placar</h2><table id="boardT"></table></div></div>
+
+  <div id="menu" class="panel"><div>
+    <h1>Baía dos Corsários</h1>
+    <p>Tiro tático em terceira pessoa, 5 contra 5, numa ilha pirata. Os Piratas precisam plantar o barril de pólvora no ponto A ou B. A Armada precisa impedir ou desarmar. Vence quem ganhar 8 rodadas.</p>
+    <div class="teams">
+      <button class="a" id="pickA">Jogar de Pirata (ataque)</button>
+      <button class="d" id="pickD">Jogar de Armada (defesa)</button>
+    </div>
+    <div class="keys">
+      <div><kbd>W A S D</kbd>andar</div><div><kbd>Mouse</kbd>mirar e atirar</div>
+      <div><kbd>Botão direito</kbd>mira</div><div><kbd>Shift</kbd>andar devagar</div>
+      <div><kbd>Espaço</kbd>pular</div><div><kbd>R</kbd>recarregar</div>
+      <div><kbd>1</kbd><kbd>2</kbd>trocar arma</div><div><kbd>B</kbd>comprar</div>
+      <div><kbd>E</kbd>plantar / desarmar</div><div><kbd>Tab</kbd>placar</div>
+    </div>
+  </div></div>
+
+  <div id="end" class="panel" hidden><div><h1 id="endT"></h1><p id="endP"></p><button id="again">Jogar de novo</button></div></div>
+</div>
+<!--BODY-END-->
+<script src="vendor/three.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

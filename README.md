@@ -134,3 +134,7 @@ Crie uma conta em resend.com (o plano gratuito permite 3.000 e-mails/mês), veri
 - Os lembretes e eventos da agenda não levam conteúdo clínico. O título do evento usa só o primeiro nome e a inicial do sobrenome.
 - O cadastro registra o aceite do termo de privacidade (`/privacidade`). **Revise o texto do termo** com um profissional e confira as normas do seu conselho (ex.: CFP) sobre prontuário e atendimento online.
 - Faça backups do banco. O Neon guarda histórico, mas exportar periodicamente é recomendado.
+
+## Jogo: Baía dos Corsários
+
+Em `public/jogo/` há um jogo de tiro tático em terceira pessoa (5 contra 5, rodadas, compra de armas, plantar/desarmar o barril) numa ilha pirata. É independente do sistema do consultório: abra `public/jogo/index.html` direto no navegador ou acesse `/jogo/index.html` com o app rodando. Feito com three.js (em `public/jogo/vendor/`), sem etapa de build.
